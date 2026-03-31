@@ -1,48 +1,42 @@
 package com.robintech.backend.model;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-
 import java.time.LocalDateTime;
-import java.util.Set;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "users")
-public class User {
+@Table(name = "milestones")
+public class Milestone {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String username;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
-    @Column(nullable = false, unique = true)
-    private String email;
     @Column(nullable = false)
-    private String password;
+    private String title;
 
-    private String bio;
-    private String githubUrl;
-    private String avatarUrl;
+    private String description;
 
-    @ElementCollection
-    @CollectionTable(name = "user_skills", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "skill")
-    private Set<String> skills;
+    private boolean isCompleted;
 
-    @Column(updatable = false)
+    private LocalDateTime dueDate;
+
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (description == null) description = "";
     }
 }

@@ -2,10 +2,16 @@ package com.robintech.backend.dto;
 import com.robintech.backend.model.Project.CommitmentLevel;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import java.util.List;
+import lombok.NoArgsConstructor;
+import java.util.Set;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ProjectRequest {
 
     @NotBlank
@@ -14,9 +20,9 @@ public class ProjectRequest {
     @NotBlank
     private String description;
 
-    private List<String> techStack;
+    private Set<String> techStack;
 
-    private List<String> rolesNeeded;
+    private Set<String> rolesNeeded;
 
     @NotNull
     private CommitmentLevel commitmentLevel;

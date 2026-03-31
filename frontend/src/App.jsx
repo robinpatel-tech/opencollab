@@ -7,6 +7,7 @@ import Register from './pages/Register'
 import Feed from './pages/Feed'
 import CreateProject from './pages/CreateProject'
 import ProjectDetail from './pages/ProjectDetail'
+import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
 import Chat from './pages/Chat'
 
@@ -22,6 +23,12 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/feed" element={
               <ProtectedRoute><Feed /></ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute><Profile /></ProtectedRoute>
+            } />
+            <Route path="/profile/:id" element={
+              <ProtectedRoute><Profile /></ProtectedRoute>
             } />
             <Route path="/projects/create" element={
               <ProtectedRoute><CreateProject /></ProtectedRoute>

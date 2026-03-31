@@ -1,9 +1,15 @@
 package com.robintech.backend.model;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "messages")
 public class Message {
@@ -23,6 +29,7 @@ public class Message {
     @Column(nullable = false, length = 2000)
     private String content;
 
+    @Builder.Default
     private boolean isRead = false;
 
     @Column(updatable = false)

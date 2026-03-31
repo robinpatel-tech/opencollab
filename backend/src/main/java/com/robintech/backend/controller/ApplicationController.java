@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@CrossOrigin("*")
 @RequestMapping("/api/applications")
 @RequiredArgsConstructor
 public class ApplicationController {
@@ -31,6 +30,12 @@ public class ApplicationController {
     public ResponseEntity<List<ApplicationResponse>> getProjectApplications(
             @PathVariable Long projectId) {
         return ResponseEntity.ok(applicationService.getApplicationsForProject(projectId));
+    }
+
+    // Owner: view all applications across all their projects
+    @GetMapping("/incoming")
+    public ResponseEntity<List<ApplicationResponse>> getIncomingApplications() {
+        return ResponseEntity.ok(applicationService.getIncomingApplications());
     }
 
     // Applicant: view my applications

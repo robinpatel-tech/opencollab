@@ -1,11 +1,17 @@
 package com.robintech.backend.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Set;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "projects")
 public class Project {
@@ -23,22 +29,31 @@ public class Project {
     @ElementCollection
     @CollectionTable(name = "project_tech_stack", joinColumns = @JoinColumn(name = "project_id"))
     @Column(name = "tech")
-    private List<String> techStack;
+    private Set<String> techStack;
 
     @ElementCollection
     @CollectionTable(name = "project_roles_needed", joinColumns = @JoinColumn(name = "project_id"))
     @Column(name = "role")
-    private List<String> rolesNeeded;
+    private Set<String> rolesNeeded;
 
     @Enumerated(EnumType.STRING)
     private CommitmentLevel commitmentLevel;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private ProjectStatus status = ProjectStatus.OPEN;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "project_collaborators",
+        joinColumns = @JoinColumn(name = "project_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> collaborators;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;

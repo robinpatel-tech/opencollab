@@ -11,9 +11,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -27,14 +29,19 @@ public class AuthService {
         if (userRepository.existsByUsername(request.getUsername()))
             throw new RuntimeException("Username already taken");
 
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        User user = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .build();
         userRepository.save(user);
 
         String token = jwtUtil.generateToken(user.getEmail());
-        return new AuthResponse(token, user.getUsername(), user.getId());
+        return AuthResponse.builder()
+                .token(token)
+                .username(user.getUsername())
+                .userId(user.getId())
+                .build();
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -44,6 +51,10 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         String token = jwtUtil.generateToken(user.getEmail());
-        return new AuthResponse(token, user.getUsername(), user.getId());
+        return AuthResponse.builder()
+                .token(token)
+                .username(user.getUsername())
+                .userId(user.getId())
+                .build();
     }
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   getMyProjects, getMyApplications,
-  getProjectApplications, updateApplicationStatus
+  getIncomingApplications, updateApplicationStatus
 } from '../services/api'
 
 export default function Dashboard() {
@@ -10,25 +10,32 @@ export default function Dashboard() {
   const [myProjects, setMyProjects] = useState([])
   const [myApplications, setMyApplications] = useState([])
   const [incomingApps, setIncomingApps] = useState([])
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
-    getMyProjects().then(res => {
-      setMyProjects(res.data)
-      res.data.forEach(p => {
-        getProjectApplications(p.id).then(a => {
-          setIncomingApps(prev => [...prev, ...a.data])
-        }).catch(() => {})
-      })
-    })
-    getMyApplications().then(res => setMyApplications(res.data))
+    setLoading(true)
+    Promise.all([
+      getMyProjects(),
+      getIncomingApplications(),
+      getMyApplications()
+    ]).then(([projects, incoming, applied]) => {
+      setMyProjects(projects.data)
+      setIncomingApps(incoming.data)
+      setMyApplications(applied.data)
+    }).catch(console.error)
+      .finally(() => setLoading(false))
   }, [])
 
   const handleStatus = async (appId, status) => {
-    await updateApplicationStatus(appId, status)
-    setIncomingApps(prev =>
-      prev.map(a => a.id === appId ? { ...a, status } : a)
-    )
+    try {
+      await updateApplicationStatus(appId, status)
+      setIncomingApps(prev =>
+        prev.map(a => a.id === appId ? { ...a, status } : a)
+      )
+    } catch (err) {
+      console.error('Failed to update status:', err)
+    }
   }
 
   const statusBadge = {
@@ -62,8 +69,14 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {loading && (
+        <div className="flex justify-center py-10">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      )}
+
       {/* My Projects */}
-      {tab === 'myProjects' && (
+      {!loading && tab === 'myProjects' && (
         <div className="space-y-3">
           {myProjects.length === 0 ? (
             <p className="text-gray-400 text-sm">You haven't posted any projects yet.</p>
@@ -85,7 +98,7 @@ export default function Dashboard() {
       )}
 
       {/* Incoming Applications */}
-      {tab === 'incoming' && (
+      {!loading && tab === 'incoming' && (
         <div className="space-y-3">
           {incomingApps.length === 0 ? (
             <p className="text-gray-400 text-sm">No applications received yet.</p>
@@ -116,7 +129,7 @@ export default function Dashboard() {
                     Reject
                   </button>
                   <button
-                    onClick={() => navigate(`/chat/${app.applicantId}`)}
+                    onClick={() => navigate(`/chat/${app.applicantId}`, { state: { name: app.applicantUsername } })}
                     className="bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-lg hover:bg-blue-100"
                   >
                     Chat
@@ -125,7 +138,7 @@ export default function Dashboard() {
               )}
               {app.status === 'ACCEPTED' && (
                 <button
-                  onClick={() => navigate(`/chat/${app.applicantId}`)}
+                  onClick={() => navigate(`/chat/${app.applicantId}`, { state: { name: app.applicantUsername } })}
                   className="bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-lg hover:bg-blue-100"
                 >
                   Open Chat
@@ -137,19 +150,30 @@ export default function Dashboard() {
       )}
 
       {/* My Applications */}
-      {tab === 'applied' && (
+      {!loading && tab === 'applied' && (
         <div className="space-y-3">
           {myApplications.length === 0 ? (
             <p className="text-gray-400 text-sm">You haven't applied to any projects yet.</p>
           ) : myApplications.map(app => (
-            <div key={app.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-gray-900">{app.projectTitle}</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Role: {app.roleAppliedFor}</p>
+            <div key={app.id} className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-gray-900">{app.projectTitle}</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Role: {app.roleAppliedFor}</p>
+                </div>
+                <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadge[app.status]}`}>
+                  {app.status}
+                </span>
               </div>
-              <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadge[app.status]}`}>
-                {app.status}
-              </span>
+              
+              {app.status === 'ACCEPTED' && (
+                <button
+                  onClick={() => navigate(`/chat/${app.ownerId}`, { state: { name: app.ownerUsername } })}
+                  className="bg-blue-600 text-white text-xs px-4 py-2 rounded-lg hover:bg-blue-700 w-fit"
+                >
+                  Message Owner
+                </button>
+              )}
             </div>
           ))}
         </div>

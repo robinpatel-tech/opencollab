@@ -9,11 +9,13 @@ import com.robintech.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
@@ -28,13 +30,14 @@ public class ProjectService {
 
     public ProjectResponse createProject(ProjectRequest request) {
         User owner = getCurrentUser();
-        Project project = new Project();
-        project.setTitle(request.getTitle());
-        project.setDescription(request.getDescription());
-        project.setTechStack(request.getTechStack());
-        project.setRolesNeeded(request.getRolesNeeded());
-        project.setCommitmentLevel(request.getCommitmentLevel());
-        project.setOwner(owner);
+        Project project = Project.builder()
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .techStack(request.getTechStack())
+                .rolesNeeded(request.getRolesNeeded())
+                .commitmentLevel(request.getCommitmentLevel())
+                .owner(owner)
+                .build();
         return ProjectResponse.fromEntity(projectRepository.save(project));
     }
 

@@ -13,16 +13,20 @@ import com.robintech.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext()
@@ -45,13 +49,23 @@ public class ApplicationService {
         if (project.getStatus() != Project.ProjectStatus.OPEN)
             throw new RuntimeException("This project is not accepting applications");
 
-        Application application = new Application();
-        application.setProject(project);
-        application.setApplicant(applicant);
-        application.setMessage(request.getMessage());
-        application.setRoleAppliedFor(request.getRoleAppliedFor());
+        Application application = Application.builder()
+                .project(project)
+                .applicant(applicant)
+                .message(request.getMessage())
+                .roleAppliedFor(request.getRoleAppliedFor())
+                .build();
 
-        return ApplicationResponse.fromEntity(applicationRepository.save(application));
+        Application saved = applicationRepository.save(application);
+
+        // Notify project owner
+        notificationService.createNotification(
+                project.getOwner(),
+                applicant.getUsername() + " applied to your project: " + project.getTitle(),
+                com.robintech.backend.model.Notification.NotificationType.APPLICATION_RECEIVED
+        );
+
+        return ApplicationResponse.fromEntity(saved);
     }
 
     // Project owner sees all applications for their project
@@ -64,6 +78,14 @@ public class ApplicationService {
             throw new RuntimeException("Not authorized to view these applications");
 
         return applicationRepository.findByProject(project)
+                .stream()
+                .map(ApplicationResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    public List<ApplicationResponse> getIncomingApplications() {
+        User currentUser = getCurrentUser();
+        return applicationRepository.findByProjectOwner(currentUser)
                 .stream()
                 .map(ApplicationResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -89,6 +111,30 @@ public class ApplicationService {
             throw new RuntimeException("Not authorized to update this application");
 
         application.setStatus(status);
+        
+        if (status == ApplicationStatus.ACCEPTED) {
+            Project project = application.getProject();
+            if (project.getCollaborators() == null) {
+                project.setCollaborators(new HashSet<>());
+            }
+            project.getCollaborators().add(application.getApplicant());
+            projectRepository.save(project);
+
+            // Notify applicant
+            notificationService.createNotification(
+                    application.getApplicant(),
+                    "Your application to " + project.getTitle() + " has been ACCEPTED!",
+                    com.robintech.backend.model.Notification.NotificationType.APPLICATION_ACCEPTED
+            );
+        } else if (status == ApplicationStatus.REJECTED) {
+             // Notify applicant
+             notificationService.createNotification(
+                     application.getApplicant(),
+                     "Your application to " + application.getProject().getTitle() + " was not accepted at this time.",
+                     com.robintech.backend.model.Notification.NotificationType.APPLICATION_REJECTED
+             );
+        }
+        
         return ApplicationResponse.fromEntity(applicationRepository.save(application));
     }
 
